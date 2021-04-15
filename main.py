@@ -1,4 +1,4 @@
-from function import get_date, get_locationOfSlash, get_time, get_hours
+from function import get_date, get_locationOfSlash, get_time, get_hours, bcolors
 import paho.mqtt.client as mqtt
 import time
 import threading
@@ -19,10 +19,9 @@ switcher = {
 
 response = {}
 payload, node_list = [], []
-last_time, c, last_hours = 0, 0, get_hours()
+last_sec, last_minute, c, last_hours = 0, 0, 0, get_hours()
 
 client = mqtt.Client()
-
 
 def on_connect(client, userdata, flags, rc):
     print("Connected success") if rc == 0 else print(
@@ -49,6 +48,8 @@ def storeSensorValue(topic, message):
         analog = (topic[location[5]+1:])
 
         if("device_added" in message):
+            print(bcolors.BOLD + bcolors.WARNING +
+                  "Device detect." + bcolors.ENDC)
             if(request.get_devicename(uid=uid, uname=unique_name, devicename=node)):
                 new_device = [{
                     "devicename": node,
@@ -79,33 +80,42 @@ def runSubscribe():
         time.sleep(1)
 
 
-def runEveryMinute():
-    global c, response, payload, node_list, last_time, last_hours
+def runEverySecond():
+    global c, response, payload, node_list, last_sec, last_minute, last_hours
     while(True):
-        if get_date("minute") != last_time:
-            last_time = get_date("minute")
-            response = request.get_response(uid=uid)
+        if get_date("second") != last_sec:
+            last_sec = get_date("second")
+            buff = request.get_response(uid=uid)
+            if response != buff:
+                response = buff
+                print(bcolors.BOLD + bcolors.OKGREEN +
+                      "\nYou setting is updated." + bcolors.ENDC)
 
-            print("")
-            print("Time "+str(last_hours) + ":" + str(last_time)+" O'clock")
+            print(bcolors.BOLD + "\nTime "+str(last_hours) + ":" +
+                  str(get_date("minute")) + ":" + str(last_sec)+" O'clock" + bcolors.ENDC)
 
-            if(get_hours() != last_hours and payload != []):
-                request.post_chart(uid=uid, uname=unique_name, data=payload)
-                last_hours = get_hours()
+            if get_date("minute") != last_minute:
+                last_minute = get_date("minute")
 
-            if(c > 0 and payload != []):
-                request.post(uid=uid, uname=unique_name,
-                             data=json.dumps(payload))
-                payload, node_list = [], []
-            else:
-                c = c+1
+                if(get_hours() != last_hours and payload != []):
+                    request.post_chart(
+                        uid=uid, uname=unique_name, data=payload)
+                    last_hours = get_hours()
+                    print("house")
+
+                if(c > 0 and payload != []):
+                    request.post(uid=uid, uname=unique_name,
+                                 data=json.dumps(payload))
+                    payload, node_list = [], []
+                else:
+                    c = c+1
 
             automationM0_M2()
-        time.sleep(1)
 
 
 def automationM0_M2():
     if response:
+        nodeBuff = []
         for i in response:
             if(i["uniqueName"] == unique_name):
                 node = i["devicename"]
@@ -132,9 +142,11 @@ def automationM0_M2():
                     else:
                         continue
                     client.publish(unique_name + "/" + node + "/control/" +
-                                switcher.get(j["module"]), payload=command, qos=1)
+                                   switcher.get(j["module"]), payload=command, qos=1)
+                nodeBuff.append(node)
 
-                print("Updated nodes status of : "+node)
+        print(" └ Updated nodes status of : " +
+              str(nodeBuff).replace("[", "").replace("]", "").replace("'", ""))
 
 
 def automationOnlyM1(topic, message):
@@ -200,10 +212,12 @@ def automationOnlyM1(topic, message):
                             client.publish(unique_name + "/" + thisnode + "/control/" +
                                            switcher.get(j["module"]), payload=command, qos=1)
 
+            print(" ➤ Automations of sensors is Running.")
+
 
 if __name__ == "__main__":
     t1 = threading.Thread(target=runSubscribe)
-    t2 = threading.Thread(target=runEveryMinute)
+    t2 = threading.Thread(target=runEverySecond)
     try:
         t1.start()
         t2.start()
