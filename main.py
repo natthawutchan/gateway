@@ -23,6 +23,7 @@ last_sec, last_minute, c, last_hours = 0, 0, 0, get_hours()
 
 client = mqtt.Client()
 
+
 def on_connect(client, userdata, flags, rc):
     print("Connected success") if rc == 0 else print(
         f"Connected fail with code {rc}")
@@ -92,21 +93,25 @@ def runEverySecond():
                       "\nYou setting is updated." + bcolors.ENDC)
 
             print(bcolors.BOLD + "\nTime "+str(last_hours) + ":" +
-                  str(get_date("minute")) + ":" + str(last_sec)+" O'clock" + bcolors.ENDC)
+                  str(get_date("minute")) + ":" + str(last_sec) + " O'clock" + bcolors.ENDC)
 
             if get_date("minute") != last_minute:
                 last_minute = get_date("minute")
 
-                if(get_hours() != last_hours and payload != []):
+                if(get_hours() != last_hours):
                     request.post_chart(
-                        uid=uid, uname=unique_name, data=payload)
+                        uid=uid, uname=unique_name, data=payload) if payload != [] else print(" ├ "+bcolors.WARNING +
+                                                                                              "Payload is empty, do not upload chart."+bcolors.ENDC)
                     last_hours = get_hours()
-                    print("house")
 
-                if(c > 0 and payload != []):
-                    request.post(uid=uid, uname=unique_name,
-                                 data=json.dumps(payload))
-                    payload, node_list = [], []
+                if(c > 0):
+                    if payload != []:
+                        request.post(uid=uid, uname=unique_name,
+                                     data=json.dumps(payload))
+                        payload, node_list = [], []
+                    else:
+                        print(" ├ "+bcolors.WARNING +
+                              "Payload is empty, do not upload value."+bcolors.ENDC)
                 else:
                     c = c+1
 
