@@ -100,8 +100,8 @@ def runEverySecond():
 
                 if(get_hours() != last_hours):
                     request.post_chart(
-                        uid=uid, uname=unique_name, data=payload) if payload != [] else print(" ├ "+bcolors.WARNING +
-                                                                                              "Payload is empty, do not upload chart."+bcolors.ENDC)
+                        uid=uid, uname=unique_name, data=json.dumps(payload)) if payload != [] else print(" ├ "+bcolors.WARNING +
+                                                                                                          "Payload is empty, do not upload chart."+bcolors.ENDC)
                     last_hours = get_hours()
 
                 if(c > 0):

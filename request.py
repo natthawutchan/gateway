@@ -2,9 +2,11 @@ import requests
 import json
 from function import bcolors
 
+uid = "NATFcsIhL4RPfh3Zf6iJDMhDUrG3"
+uname = "farm4"
 
 def post(uid, uname, data):
-    url = "http://ec2-52-77-240-215.ap-southeast-1.compute.amazonaws.com:443/update_values"
+    url = "https://smart-kits.tech/update_value"
     header = {"Content-Type": "application/json",
               "uid": uid, "uname": uname}
     r = requests.post(url, headers=header, data=data)
@@ -17,7 +19,7 @@ def post(uid, uname, data):
 
 
 def get_response(uid):
-    url = "http://ec2-52-77-240-215.ap-southeast-1.compute.amazonaws.com:443/auto/get_automation"
+    url = "https://smart-kits.tech/auto/get_automation"
     header = {"Content-Type": "application/json", "uid": uid}
     response = requests.get(url, headers=header)
     if "200" in str(response):
@@ -29,9 +31,9 @@ def get_response(uid):
 
 
 def post_chart(uid, uname, data):
-    url = "http://ec2-52-77-240-215.ap-southeast-1.compute.amazonaws.com:443/update_value/chart"
+    url = "https://smart-kits.tech/update_value/chart"
     header = {"Content-Type": "application/json", "uid": uid}
-    r = requests.post(url, headers=header, data=json.dumps(data))
+    r = requests.post(url, headers=header, data=data)
     if "200" in str(r):
         print(" ├" + bcolors.OKGREEN +
               " Data chart updated. " + str(r) + bcolors.ENDC)
@@ -41,7 +43,7 @@ def post_chart(uid, uname, data):
 
 
 def get_devicename(uid, uname, devicename):
-    url = "http://ec2-52-77-240-215.ap-southeast-1.compute.amazonaws.com:443/uname"
+    url = "https://smart-kits.tech/uname"
     header = {"Content-Type": "application/json",
               "uid": uid, "uname": uname, "devicename": devicename}
     response = requests.get(url, headers=header)
