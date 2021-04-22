@@ -113,7 +113,7 @@ def runEveryMinute():
                 strMinute = "0"+str(last_minute) if last_minute<10 else str(last_minute)
                 print(f"\r{bcolors.WARNING}{bcolors.BOLD}Time {strHours}:{strMinute}:{strSecond}:{milli} O'colck{bcolors.ENDC}")
                 buff = request.get_response(uid=uid)
-                if response != buff:
+                if response != buff and buff != None:
                     response = buff
                     print(" ├ " + bcolors.OKGREEN +
                           "You setting is updated." + bcolors.ENDC)
