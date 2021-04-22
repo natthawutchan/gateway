@@ -35,6 +35,9 @@ def get_date(setting):
     elif setting == "second":
         time = datetime.now(time_zone)
         return time.second
+    elif setting == "milli":
+        time = datetime.now(time_zone)
+        return time.microsecond
 
 def get_time():
     return int(datetime.now().strftime("%H%M"))

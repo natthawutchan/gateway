@@ -6,6 +6,7 @@ import json
 import request
 import requests
 
+
 host = "pigateway.sytes.net"
 port = 1883
 uid = "NATFcsIhL4RPfh3Zf6iJDMhDUrG3"
@@ -17,18 +18,21 @@ switcher = {
     "pwm": "D6"
 }
 
+auto_node, auto_module = [], []
 response = {}
 payload, node_list = [], []
 last_sec, last_minute, c, last_hours = 0, 0, 0, get_hours()
+
 
 client = mqtt.Client()
 
 
 def on_connect(client, userdata, flags, rc):
-    print("Connected success") if rc == 0 else print(
-        f"Connected fail with code {rc}")
     client.subscribe("#")
-
+    time.sleep(0.1)
+    print(" ├ " + bcolors.OKGREEN + f"Connected success : {host}" + bcolors.ENDC) if rc == 0 else print(
+        " ├ " + bcolors.FAIL + f"Connected fail with code {rc}" + bcolors.ENDC)
+    
 
 def on_message(client, userdata, message):
     topic = message.topic
@@ -38,7 +42,7 @@ def on_message(client, userdata, message):
 
 
 def storeSensorValue(topic, message):
-    global node_list, payload
+    global node_list, payload, response
     location = get_locationOfSlash(topic)
     if(len(location) > 2 and ((topic[location[2]+1:location[3]]) == "sensor")
        and (topic[location[0]:location[1]]) == unique_name):
@@ -48,7 +52,13 @@ def storeSensorValue(topic, message):
         humidity = (topic[location[4]+1:location[5]])
         analog = (topic[location[5]+1:])
 
-        if("device_added" in message):
+        if("trig_to_update" in message):
+            response = request.get_response(uid=uid)
+            print(bcolors.BOLD + bcolors.OKGREEN +
+                  "\nYou setting is Trig to updated." + bcolors.ENDC)
+            automationM0_M2()
+
+        elif("device_added" in message):
             print(bcolors.BOLD + bcolors.WARNING +
                   "Device detect." + bcolors.ENDC)
             if(request.get_devicename(uid=uid, uname=unique_name, devicename=node)):
@@ -81,28 +91,39 @@ def runSubscribe():
         time.sleep(1)
 
 
-def runEverySecond():
-    global c, response, payload, node_list, last_sec, last_minute, last_hours
+def runEveryMinute():
+    global c, response, payload, node_list, last_minute, last_hours, last_sec
+    strMinute, strHours = "", "0"+str(last_hours) if last_hours<10 else str(last_hours)
     while(True):
-        if get_date("second") != last_sec:
-            last_sec = get_date("second")
-            buff = request.get_response(uid=uid)
-            if response != buff:
-                response = buff
-                print(bcolors.BOLD + bcolors.OKGREEN +
-                      "\nYou setting is updated." + bcolors.ENDC)
+        try:
+            time.sleep(0.01)
+            microsecond = int(get_date("milli")/1000)
+            milli = "0" + str(microsecond) if microsecond < 100 else str(microsecond)
+            if microsecond < 10:
+                milli = "0" + milli 
 
-            print(bcolors.BOLD + "\nTime "+str(last_hours) + ":" +
-                  str(get_date("minute")) + ":" + str(last_sec) + " O'clock" + bcolors.ENDC)
-
+            second = get_date("second")
+            strSecond = ("0"+str(second)) if second < 10 else str(second)
+            # if second != last_sec and second != 0:
+            #     last_sec = get_date("second")
+            print(
+                f"{bcolors.WARNING}{bcolors.BOLD}Time {strHours}:{strMinute}:{strSecond}:{milli} O'colck{bcolors.ENDC}", end="\r")
             if get_date("minute") != last_minute:
                 last_minute = get_date("minute")
+                strMinute = "0"+str(last_minute) if last_minute<10 else str(last_minute)
+                print(f"\r{bcolors.WARNING}{bcolors.BOLD}Time {strHours}:{strMinute}:{strSecond}:{milli} O'colck{bcolors.ENDC}")
+                buff = request.get_response(uid=uid)
+                if response != buff:
+                    response = buff
+                    print(" ├ " + bcolors.OKGREEN +
+                          "You setting is updated." + bcolors.ENDC)
 
                 if(get_hours() != last_hours):
                     request.post_chart(
                         uid=uid, uname=unique_name, data=json.dumps(payload)) if payload != [] else print(" ├ "+bcolors.WARNING +
                                                                                                           "Payload is empty, do not upload chart."+bcolors.ENDC)
                     last_hours = get_hours()
+                    strHours = "0"+str(last_hours) if last_hours<10 else str(last_hours)
 
                 if(c > 0):
                     if payload != []:
@@ -115,7 +136,14 @@ def runEverySecond():
                 else:
                     c = c+1
 
-            automationM0_M2()
+                print(" ├ " + bcolors.OKCYAN + "Automations is runnig for : " +
+                      str(len(auto_node))+" node "+str(len(auto_module))+" module" + bcolors.ENDC)
+                automationM0_M2()
+
+        except KeyboardInterrupt:
+            raise
+        except:
+            print("Exception in EverySecond")
 
 
 def automationM0_M2():
@@ -150,8 +178,8 @@ def automationM0_M2():
                                    switcher.get(j["module"]), payload=command, qos=1)
                 nodeBuff.append(node)
 
-        print(" └ Updated nodes status of : " +
-              str(nodeBuff).replace("[", "").replace("]", "").replace("'", ""))
+        print(" └ " + bcolors.OKCYAN + "Updating nodes status for : " +
+              str(nodeBuff).replace("[", "").replace("]", "").replace("'", "") + "\n" + bcolors.ENDC)
 
 
 def automationOnlyM1(topic, message):
@@ -169,6 +197,7 @@ def automationOnlyM1(topic, message):
                 if(i["uniqueName"] == unique_name):
                     thisnode = i["devicename"]
                     i = i["automations"]
+
                     for j in i:
                         if j["mode"] == "อัตโนมัติ" and j["node_target"] == node:
 
@@ -217,14 +246,15 @@ def automationOnlyM1(topic, message):
                             client.publish(unique_name + "/" + thisnode + "/control/" +
                                            switcher.get(j["module"]), payload=command, qos=1)
 
-            print(" ➤ Automations of sensors is Running.")
+                            if (thisnode+":"+j["module"]) not in auto_module:
+                                auto_module.append(
+                                    str(thisnode+":"+j["module"]))
+                            if thisnode not in auto_node:
+                                auto_node.append(thisnode)
 
 
 if __name__ == "__main__":
     t1 = threading.Thread(target=runSubscribe)
-    t2 = threading.Thread(target=runEverySecond)
-    try:
-        t1.start()
-        t2.start()
-    except:
-        print("Something went wrong")
+    t2 = threading.Thread(target=runEveryMinute)
+    t1.start()
+    t2.start()
