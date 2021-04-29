@@ -58,11 +58,11 @@ def post_chart(uid, uname, data):
             state = False
         elif count <= 5:
             print(" ├" + bcolors.FAIL +
-                  f" Data chart updat retry #{count}. " + str(r) + bcolors.ENDC)
+                  f" Data chart update retry #{count}. " + str(r) + bcolors.ENDC)
             count = count + 1
         else:
             print(" ├" + bcolors.FAIL +
-                  " Data chart updat time out. " + str(r) + bcolors.ENDC)
+                  " Data chart update time out. " + str(r) + bcolors.ENDC)
             break
 
 
@@ -87,3 +87,21 @@ def get_devicename(uid, uname, devicename):
                   " Eror response from get_devicename time out. " + bcolors.ENDC)
             return False
 
+def notifications(uid, data):
+    count, state = 1, True
+    while state:
+        url = "https://smart-kits.tech/notifications"
+        header = {"Content-Type": "application/json", "uid": uid}
+        r = requests.post(url, headers=header, data=data)
+        if "200" in str(r):
+            print(" ├" + bcolors.OKGREEN +
+                  " Notification send. " + str(r) + bcolors.ENDC)
+            state = False
+        elif count <= 5:
+            print(" ├" + bcolors.FAIL +
+                  f" Notification send retry #{count}. " + str(r) + bcolors.ENDC)
+            count = count + 1
+        else:
+            print(" ├" + bcolors.FAIL +
+                  " Notification send time out. " + str(r) + bcolors.ENDC)
+            break

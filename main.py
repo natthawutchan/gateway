@@ -32,11 +32,12 @@ def on_connect(client, userdata, flags, rc):
     time.sleep(0.1)
     print(" ├ " + bcolors.OKGREEN + f"Connected success : {host}" + bcolors.ENDC) if rc == 0 else print(
         " ├ " + bcolors.FAIL + f"Connected fail with code {rc}" + bcolors.ENDC)
-    
+
 
 def on_message(client, userdata, message):
     topic = message.topic
     message = str(message.payload.decode("utf-8"))
+    # print(f"{topic} : {message}")
     storeSensorValue(topic, message)
     automationOnlyM1(topic, message)
 
@@ -54,14 +55,18 @@ def storeSensorValue(topic, message):
 
         if("trig_to_update" in message):
             response = request.get_response(uid=uid)
-            print(bcolors.BOLD + bcolors.OKGREEN +
-                  "\nYou setting is Trig to updated." + bcolors.ENDC)
+            print("\n"+" ├ "+bcolors.BOLD + bcolors.OKGREEN +
+                  "You setting is Trig to updated." + bcolors.ENDC)
             automationM0_M2()
 
         elif("device_added" in message):
             print(bcolors.BOLD + bcolors.WARNING +
                   "Device detect." + bcolors.ENDC)
             if(request.get_devicename(uid=uid, uname=unique_name, devicename=node)):
+                request.notifications(uid=uid, data=json.dumps({
+                    "title": "เพิ่มอุปกรณ์เข้ามาเรียบร้อยแล้ว!",
+                    "message": node
+                }))
                 new_device = [{
                     "devicename": node,
                     "temperature": temperature,
@@ -93,14 +98,16 @@ def runSubscribe():
 
 def runEveryMinute():
     global c, response, payload, node_list, last_minute, last_hours, last_sec
-    strMinute, strHours = "", "0"+str(last_hours) if last_hours<10 else str(last_hours)
+    strMinute, strHours = "", "0" + \
+        str(last_hours) if last_hours < 10 else str(last_hours)
     while(True):
         try:
             time.sleep(0.01)
             microsecond = int(get_date("milli")/1000)
-            milli = "0" + str(microsecond) if microsecond < 100 else str(microsecond)
+            milli = "0" + \
+                str(microsecond) if microsecond < 100 else str(microsecond)
             if microsecond < 10:
-                milli = "0" + milli 
+                milli = "0" + milli
 
             second = get_date("second")
             strSecond = ("0"+str(second)) if second < 10 else str(second)
@@ -110,8 +117,10 @@ def runEveryMinute():
                 f"{bcolors.WARNING}{bcolors.BOLD}Time {strHours}:{strMinute}:{strSecond}:{milli} O'colck{bcolors.ENDC}", end="\r")
             if get_date("minute") != last_minute:
                 last_minute = get_date("minute")
-                strMinute = "0"+str(last_minute) if last_minute<10 else str(last_minute)
-                print(f"\r{bcolors.WARNING}{bcolors.BOLD}Time {strHours}:{strMinute}:{strSecond}:{milli} O'colck{bcolors.ENDC}")
+                strMinute = "0" + \
+                    str(last_minute) if last_minute < 10 else str(last_minute)
+                print(
+                    f"\r{bcolors.WARNING}{bcolors.BOLD}Time {strHours}:{strMinute}:{strSecond}:{milli} O'colck{bcolors.ENDC}")
                 buff = request.get_response(uid=uid)
                 if response != buff and buff != None:
                     response = buff
@@ -123,7 +132,8 @@ def runEveryMinute():
                         uid=uid, uname=unique_name, data=json.dumps(payload)) if payload != [] else print(" ├ "+bcolors.WARNING +
                                                                                                           "Payload is empty, do not upload chart."+bcolors.ENDC)
                     last_hours = get_hours()
-                    strHours = "0"+str(last_hours) if last_hours<10 else str(last_hours)
+                    strHours = "0" + \
+                        str(last_hours) if last_hours < 10 else str(last_hours)
 
                 if(c > 0):
                     if payload != []:
