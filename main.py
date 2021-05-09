@@ -65,6 +65,7 @@ def storeSensorValue(topic, message):
             if(request.get_devicename(uid=uid, uname=unique_name, devicename=node)):
                 request.notifications(uid=uid, data=json.dumps({
                     "title": "เพิ่มอุปกรณ์เข้ามาเรียบร้อยแล้ว!",
+                    "devicename": node,
                     "message": node
                 }))
                 new_device = [{
@@ -153,7 +154,7 @@ def runEveryMinute():
         except KeyboardInterrupt:
             raise
         except:
-            print("Exception in EverySecond")
+            print("Exception in EveryMinute")
 
 
 def automationM0_M2():
@@ -176,12 +177,18 @@ def automationM0_M2():
                                 now += 10000
                             end += 10000
 
-                        if (start <= now < end):
-                            command = j["action"]
-                        elif j["action"] == "true":
-                            command = "false"
-                        elif j["action"] == "false":
-                            command = "true"
+                        if(j["module"])=="pwm":
+                            if (start <= now < end):
+                                command = j["action"]
+                            else: 
+                                command = "0"
+                        else:
+                            if (start <= now < end):
+                                command = j["action"]
+                            elif j["action"] == "true":
+                                command = "false"
+                            elif j["action"] == "false":
+                                command = "true"
                     else:
                         continue
                     client.publish(unique_name + "/" + node + "/control/" +
@@ -211,6 +218,7 @@ def automationOnlyM1(topic, message):
                     for j in i:
                         if j["mode"] == "อัตโนมัติ" and j["node_target"] == node:
 
+
                             if("off" in temperature or "off" in humidity or "off" in analog):
                                 continue
 
@@ -231,7 +239,8 @@ def automationOnlyM1(topic, message):
                                     command = "false" if (
                                         sensorValue > value) else "true"
                                 else:
-                                    command = j["action"]
+                                    command = j["action"] if (
+                                        sensorValue > value) else "0"
 
                             elif (j["operator"] == "น้อยกว่า"):
                                 if (j["action"] == "true"):
@@ -241,7 +250,8 @@ def automationOnlyM1(topic, message):
                                     command = "false" if (
                                         sensorValue < value) else "true"
                                 else:
-                                    command = j["action"]
+                                    command = j["action"] if (
+                                        sensorValue < value) else "0"
 
                             elif (j["operator"] == "เท่ากับ"):
                                 if (j["action"] == "true"):
@@ -251,7 +261,8 @@ def automationOnlyM1(topic, message):
                                     command = "false" if (
                                         sensorValue == value) else "true"
                                 else:
-                                    command = j["action"]
+                                    command = j["action"] if (
+                                        sensorValue == value) else "0"
 
                             client.publish(unique_name + "/" + thisnode + "/control/" +
                                            switcher.get(j["module"]), payload=command, qos=1)
